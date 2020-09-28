@@ -5,7 +5,7 @@ import datetime
 
 today = datetime.datetime.today().weekday()
 user_config = mw.addonManager.getConfig(__name__)
-def deckconfigsetup():
+def deckconfigsetup(deckbrowser):
     print(user_config)
     for name in user_config:
         day = user_config[name]
@@ -22,4 +22,6 @@ def deckconfigsetup():
                     print(new_config)
                     mw.col.decks.setConf(new_config, config["id"])
 
-gui_hooks.main_window_did_init.append(deckconfigsetup)
+# gui_hooks.main_window_did_init.append(deckconfigsetup)
+gui_hooks.deck_browser_did_render.append(deckconfigsetup)
+
