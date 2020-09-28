@@ -34,7 +34,8 @@ did = ? and queue = {QUEUE_TYPE_REV} and due <= ? limit ?""",
                     # r = random.Random()
                     # r.seed(self.today)
                     # r.shuffle(self._revQueue)
-                    self._revQueue.reverse()
+                    self._revQueue.sort(reverse=True)
+                    print(self._revQueue)
                 # is the current did empty?
                 if len(self._revQueue) < lim:
                     self._revDids.pop(0)
@@ -60,7 +61,7 @@ def created_order_on_off():
         anki.sched.Scheduler._fillRev = old_fillRev
         is_old_fillRev == True
 
-# created_order_on_off()
+created_order_on_off()
 # create a new menu item, "test"
 action = QAction("On - Off Review Created Order", mw)
 # set it to call testFunction when it's clicked
