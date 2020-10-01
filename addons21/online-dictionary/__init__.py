@@ -11,20 +11,19 @@ def selectedText(page):
     else:
         return text
 
+def searchTerm(text):
+    os.system(f'start chrome "https://www.mazii.net/search?dict=javi&type=w&query={text}&hl=vi-VN"')
 
-def searchTerm(page):
+def add_to_context(page, menu):
     text = selectedText(page)
     if text:
         text = re.sub(r'\[[^\]]+?\]', '', text)
         text = text.strip()
-    print(r'start chrome https://www.mazii.net/search?dict=javi&type=w&query=' + text + r'&hl=vi-VN')
-    os.system(r'start chrome https://www.mazii.net/search?dict=javi&type=w&query=' + text + r'&hl=vi-VN')
-
-
-def add_to_context(view, menu):    
-    a = menu.addAction("Search term")
-    a.triggered.connect(lambda _, page=view: searchTerm(page))
-
-addHook("EditorWebView.contextMenuEvent", add_to_context)
-
-
+    a = menu.addAction(f"Search Term '{text}'")
+    a.triggered.connect(lambda _, text=text: searchTerm(text))
+      
+## Equal Expression to add Hook
+# addHook("EditorWebView.contextMenuEvent", add_to_context)
+gui_hooks.editor_will_show_context_menu.append(add_to_context)
+# addHook("AnkiWebView.contextMenuEvent", add_to_context)
+gui_hooks.webview_will_show_context_menu.append(add_to_context)

@@ -25,3 +25,5 @@ def deckconfigsetup(deckbrowser):
 # gui_hooks.main_window_did_init.append(deckconfigsetup)
 gui_hooks.deck_browser_did_render.append(deckconfigsetup)
 
+
+
