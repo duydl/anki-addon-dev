@@ -1,0 +1,17 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "title": "Clustering Review",
+  "properties": {
+    "minivl": {
+      "type": "number",
+      "default": 15,
+      "description": "Minimum Interval"
+    },
+    "default-field": {
+      "type": "string",
+      "default": "Section",
+      "description": "Default Section"
+    }
+  }
+}
