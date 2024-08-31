@@ -30,53 +30,42 @@ from aqt.utils import tooltip
 
 CSS = """
 <style>
-  .xbutton {
-  font-size: 1.25vw !important;
-  border: 0px solid gray;
-  background-color: white;
-  color: black;
-  padding: 0.25vw ;
+  .filter-field {
+    cursor: pointer;
+  }
+  .filter-field:hover {
+    color: gray;
+  }
+  .filter-tag {
+    box-shadow: inset 0 1px 0 0 white;
+    background:
+      gradient(
+        linear,
+        left top,
+        left bottom,
+        color-stop(0.05, #f9f9f9),
+        color-stop(1, #e9e9e9)
+      );
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    border: 1px solid gainsboro;
+    display: inline-block;
+    font-size: 15px;
+    height: 15px;
+    line-height: 15px;
+    padding: 4px 4px;
+    margin: 5px;
+    text-align: center;
+    text-shadow: 1px 1px 0 white;
+    cursor: pointer;
+    cursor: hand;
+  }
+  .nightMode .filter-tag {
+    color: black;
   }
 </style>
 
 """
-# <style>
-#   kbd {
-#     box-shadow: inset 0 1px 0 0 white;
-#     background:
-#       gradient(
-#         linear,
-#         left top,
-#         left bottom,
-#         color-stop(0.05, #f9f9f9),
-#         color-stop(1, #e9e9e9)
-#       );
-#     background-color: #f9f9f9;
-#     border-radius: 4px;
-#     border: 1px solid gainsboro;
-#     display: inline-block;
-#     font-size: 15px;
-#     height: 15px;
-#     line-height: 15px;
-#     padding: 4px 4px;
-#     margin: 5px;
-#     text-align: center;
-#     text-shadow: 1px 1px 0 white;
-#     cursor: pointer;
-#     cursor: hand;
-#   }
-#   .nightMode kbd {
-#     color: black;
-#   }
-# </style>
-
-# kbd {
-# font-family: serif;
-# text-align: left;
-# color: black;
-# padding: 0 ;
-# }
-# 
 
 JS = """
 <script type="text/javascript"> 
@@ -120,23 +109,23 @@ def append_to_card(output, context):
 
 
 def on_field_filter(text, field, filter, context: TemplateRenderContext):
-    if filter != 'clickable':
+    if filter != 'filter':
         return text
-    # if field == "Tags":
-    #     kbd = """
-    #     <kbd onclick="ct_click('{fieldcontent}', '{fieldname}')">
-    #     {fieldcontent}
-    #     </kbd>
-    #     """
-    #     return ''.join(
-    #     [
-    #         kbd.format(fieldname = field[:-1], fieldcontent=fieldcontent)
-    #         for fieldcontent in context.fields()['Tags'].split()
-    #     ]
-    # )
+    if field == "Tags":
+        kbd = """
+        <span class="filter-tag" onclick="ct_click('{fieldcontent}', '{fieldname}')">
+        {fieldcontent}
+        </span>
+        """
+        return ''.join(
+        [
+            kbd.format(fieldname = field[:-1], fieldcontent=fieldcontent)
+            for fieldcontent in context.fields()['Tags'].split()
+        ]
+    )
     kbd = """
-<button class="xbutton" onclick="ct_click('{fieldcontent}', '{fieldname}')"><span id = "button-{fieldname}">※</span></button>{fieldcontent}  
-"""
+    <span class="filter-field" onclick="ct_click('{fieldcontent}', '{fieldname}')">{fieldcontent} </span>
+    """
     
     return kbd.format(fieldname = field ,fieldcontent=context.fields()[field])
           

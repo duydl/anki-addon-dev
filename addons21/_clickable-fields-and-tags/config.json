@@ -1,4 +1,4 @@
 {
     "CSS":"<style> kbd { font-family: serif; font-size: 2.25vw; text-align: left; color: black;} </style>" ,
-    "JV": "<script type="text/javascript"> function ct_click(fieldname, fieldcontent) { pycmd("ct_click_" + fieldname +"|" + fieldcontent)}</script>"
+    "JS": "<script type="text/javascript"> function ct_click(fieldname, fieldcontent) { pycmd("ct_click_" + fieldname +"|" + fieldcontent)}</script>"
 }
