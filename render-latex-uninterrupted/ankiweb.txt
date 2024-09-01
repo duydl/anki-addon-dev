@@ -1,1 +1,0 @@
-It is really annoying that batch-rendering keeps get interrupted and it is necessary to debug the latex. This add-on will change the behavior of Anki to just suspending and flagging the failed card. 
