@@ -1,1 +1,1 @@
-{"name": "Rescheduling and Reviewing in Cluster", "config": {"default-field": "Section", "minivl": 21}}
+{"name": "_local-review-field-cluster", "config": {"default-field": "Section", "minivl": 21}}
