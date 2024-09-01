@@ -1,3 +1,7 @@
 __pycache__
 .env
-archive
+_archive
+_release
+
+# Add-on metadata apply when linking locally
+meta.json

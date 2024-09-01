@@ -18,6 +18,11 @@ for item_name in os.listdir(source_dir):
     
     # Check if it's a directory and contains an __init__.py file
     if os.path.isdir(item_path) and '__init__.py' in os.listdir(item_path):
+        
+        confirm = input("Are you sure you want to release " + item_name + " (y/n)? (Default: n) ")
+        if confirm != "y":
+            continue
+        
         # Define destination path
         new_item_name = f"_local-{item_name}"
         dest_path = os.path.join(destination_dir, new_item_name)
