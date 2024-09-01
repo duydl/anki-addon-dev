@@ -6,7 +6,7 @@ from config import *
 
 source_dir = os.getcwd()
 
-destination_dir = BASE
+destination_dir = os.path.join(source_dir, 'addons21')
 os.makedirs(destination_dir, exist_ok=True)
 
 release_dir = os.path.join(source_dir, '_release')
