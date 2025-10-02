@@ -14,6 +14,7 @@ from ..utils.constants import (
     DECK_FILE_EXTENSION,
     MEDIA_SUBDIRECTORY_NAME,
     NOTES_FILE_NAME,
+    METADATA_FILE_NAME,
     IMPORT_CONFIG_NAME,
 )
 from ..importer.import_dialog import ImportDialog, ImportConfig
@@ -99,6 +100,22 @@ class AnkiJsonImporter:
 
         expanded = dict(deck_json)
 
+        metadata_path = directory_path.joinpath(METADATA_FILE_NAME)
+        if metadata_path.exists():
+            with metadata_path.open(encoding='utf8') as metadata_file:
+                metadata_json = json.load(metadata_file)
+            if isinstance(metadata_json, dict):
+                for key, value in metadata_json.items():
+                    existing = expanded.get(key)
+                    if isinstance(existing, list) and isinstance(value, list):
+                        combined = list(existing)
+                        for item in value:
+                            if item not in combined:
+                                combined.append(item)
+                        expanded[key] = combined
+                    elif key not in expanded:
+                        expanded[key] = value
+
         notes_path = directory_path.joinpath(NOTES_FILE_NAME)
         if notes_path.exists():
             with notes_path.open(encoding='utf8') as notes_file:
@@ -134,6 +151,10 @@ class AnkiJsonImporter:
 
         notes_path = directory_path.joinpath(NOTES_FILE_NAME)
         if notes_path.exists() and "notes" not in deck_json:
+            return True
+
+        metadata_path = directory_path.joinpath(METADATA_FILE_NAME)
+        if metadata_path.exists():
             return True
 
         return False

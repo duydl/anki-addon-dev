@@ -8,6 +8,7 @@ from ..representation import deck_initializer
 from ..utils.constants import (
     DECK_FILE_EXTENSION,
     NOTES_FILE_NAME,
+    METADATA_FILE_NAME,
 )
 from ..utils.filesystem.name_sanitizer import sanitize_anki_deck_name
 
@@ -63,6 +64,10 @@ class HierarchicalJsonExporter(AnkiJsonExporter):
         )
 
         notes = deck_dict.pop("notes", [])
+        metadata = {}
+        note_models = deck_dict.pop("note_models", None)
+        if note_models:
+            metadata["note_models"] = note_models
         children_payloads: List = deck_dict.pop("children", [])
 
         sanitized_children = []
@@ -98,4 +103,18 @@ class HierarchicalJsonExporter(AnkiJsonExporter):
                     ensure_ascii=False,
                 )
             )
+
+        metadata_path = deck_directory.joinpath(METADATA_FILE_NAME)
+        if metadata:
+            with metadata_path.open(mode="w", encoding="utf8") as metadata_file:
+                metadata_file.write(
+                    json.dumps(
+                        metadata,
+                        sort_keys=True,
+                        indent=4,
+                        ensure_ascii=False,
+                    )
+                )
+        elif metadata_path.exists():
+            metadata_path.unlink()
 
