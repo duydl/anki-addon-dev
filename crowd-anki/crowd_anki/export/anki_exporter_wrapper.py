@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from anki.decks import DeckId
 
 from .anki_exporter import AnkiJsonExporter
+from .hierarchical_json_exporter import HierarchicalJsonExporter
 from ..anki.adapters.anki_deck import AnkiDeck
 from ..config.config_settings import ConfigSettings
 from ..utils import constants
@@ -26,6 +27,7 @@ from ..errors import UnexportableDeckException
 
 EXPORT_FAILED_TITLE = "Export failed"
 EXPORT_KEY = "CrowdAnki JSON representation" # TODO make this localisable, like in Anki (tr.(...))
+HIERARCHICAL_EXPORT_KEY = "CrowdAnki hierarchical JSON representation"
 
 class AnkiJsonExporterWrapper:
     """
@@ -69,9 +71,10 @@ def get_exporter_id(exporter):
 
 
 def exporters_hook(exporters_list):
-    exporter_id = get_exporter_id(AnkiJsonExporterWrapper)
-    if exporter_id not in exporters_list:
-        exporters_list.append(exporter_id)
+    for wrapper in (AnkiJsonExporterWrapper, HierarchicalJsonExporterWrapper):
+        exporter_id = get_exporter_id(wrapper)
+        if exporter_id not in exporters_list:
+            exporters_list.append(exporter_id)
 
 
 class AnkiJsonExporterWrapperNew(Exporter):
@@ -166,7 +169,38 @@ class AnkiJsonExporterWrapperNew(Exporter):
 
 def exporters_hook_new(exporters_list):
     """Exporter hook for Anki 2.1.55+."""
-    if not AnkiJsonExporterWrapperNew in exporters_list:
-        exporters_list.append(AnkiJsonExporterWrapperNew)
+    for wrapper in (AnkiJsonExporterWrapperNew, HierarchicalJsonExporterWrapperNew):
+        if wrapper not in exporters_list:
+            exporters_list.append(wrapper)
+
+
+class HierarchicalJsonExporterWrapper(AnkiJsonExporterWrapper):
+    key = HIERARCHICAL_EXPORT_KEY
+
+    def __init__(self, collection,
+                 deck_id: int = None,
+                 json_exporter: HierarchicalJsonExporter = None,
+                 notifier: Notifier = None):
+        super().__init__(
+            collection,
+            deck_id,
+            json_exporter or HierarchicalJsonExporter(collection, ConfigSettings.get_instance()),
+            notifier,
+        )
+
+
+class HierarchicalJsonExporterWrapperNew(AnkiJsonExporterWrapperNew):
+    @staticmethod
+    def name() -> str:
+        return HIERARCHICAL_EXPORT_KEY
+
+    def export(self, mw: aqt.main.AnkiQt,
+               options, #: ExportOptions,
+               anki_json_exporter: HierarchicalJsonExporter = None,
+               notifier: Notifier = None) -> None:
+        if anki_json_exporter is None:
+            anki_json_exporter = HierarchicalJsonExporter(mw.col, ConfigSettings.get_instance())
+
+        super().export(mw, options, anki_json_exporter, notifier)
 
 

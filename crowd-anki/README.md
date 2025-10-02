@@ -147,6 +147,19 @@ To perform the export go to menu `File > Export`
 Select the deck and the export format "CrowdAnki JSON representation".
 After pressing the Export button - select directory where the result should be stored.
 
+CrowdAnki also exposes a "CrowdAnki hierarchical JSON representation" export option.  It produces the same data as the classic
+export, but writes it into a tree of folders instead of a single `deck.json` file.  Each deck becomes its own directory (named
+with the same sanitised rules as the classic exporter) and contains:
+
+* `deck.json` – the deck metadata without embedded notes.  Child decks are listed by their folder names so the directory layout
+  shows how the hierarchy is nested.
+* `notes.json` – the notes that belong directly to that deck.
+* One subdirectory per child deck, using the same structure recursively.
+* A `media` directory at the root deck when media is included.
+
+The standard CrowdAnki importer recognises either layout, so you can freely share or version-control whichever structure fits
+your project best.
+
 ### Limitations:
 * CrowdAnki won't allow you to do export of "All decks", you should use CrowdAnki snapshot instead.   
 * Export of a filtered deck is not supported, export the main deck instead and filter it again after importing. You don't have to delete existing filtered decks, as all cards are still part of the main deck. When exporting nested decks, filtered sub-decks are just ignored.

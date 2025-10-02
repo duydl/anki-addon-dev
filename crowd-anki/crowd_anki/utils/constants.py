@@ -4,6 +4,7 @@ UUID_FIELD_NAME = 'crowdanki_uuid'
 DECK_FILE_NAME = "deck"
 DECK_FILE_EXTENSION = ".json"
 MEDIA_SUBDIRECTORY_NAME = "media"
+NOTES_FILE_NAME = "notes.json"
 IMPORT_CONFIG_NAME = "import_config.yaml"
 
 ANKI_EXPORT_EXTENSION = "directory"

@@ -9,7 +9,13 @@ import aqt.utils
 import yaml
 
 from ..representation import deck_initializer
-from ..utils.constants import DECK_FILE_NAME, DECK_FILE_EXTENSION, MEDIA_SUBDIRECTORY_NAME, IMPORT_CONFIG_NAME
+from ..utils.constants import (
+    DECK_FILE_NAME,
+    DECK_FILE_EXTENSION,
+    MEDIA_SUBDIRECTORY_NAME,
+    NOTES_FILE_NAME,
+    IMPORT_CONFIG_NAME,
+)
 from ..importer.import_dialog import ImportDialog, ImportConfig
 from aqt.qt import QDialog
 
@@ -26,7 +32,7 @@ class AnkiJsonImporter:
         and named 'deck.json' or '[foldername].json
         :param directory_path: Path
         """
-        deck_json = self.read_deck(self.get_deck_path(directory_path))
+        deck_json = self.read_deck(directory_path, self.get_deck_path(directory_path))
 
         import_config = self.read_import_config(directory_path, deck_json)
         if import_config is None:
@@ -75,13 +81,62 @@ class AnkiJsonImporter:
         inferred_path = path_for_name(directory_path.name)     # [folder]/[folder].json
         return convention_path if convention_path.exists() else inferred_path
 
-    @staticmethod
-    def read_deck(file_path: Path):
+    def read_deck(self, directory_path: Path, file_path: Path):
         if not file_path.exists():
             raise ValueError("There is no {} file inside of the selected directory".format(file_path))
 
         with file_path.open(encoding='utf8') as deck_file:
-            return json.load(deck_file)
+            deck_json = json.load(deck_file)
+
+        return self._maybe_expand_hierarchical(directory_path, deck_json)
+
+    def _maybe_expand_hierarchical(self, directory_path: Path, deck_json):
+        if not isinstance(deck_json, dict):
+            return deck_json
+
+        if not self._is_hierarchical(directory_path, deck_json):
+            return deck_json
+
+        expanded = dict(deck_json)
+
+        notes_path = directory_path.joinpath(NOTES_FILE_NAME)
+        if notes_path.exists():
+            with notes_path.open(encoding='utf8') as notes_file:
+                expanded["notes"] = json.load(notes_file)
+        else:
+            expanded.setdefault("notes", [])
+
+        expanded_children = []
+        for child in deck_json.get("children", []):
+            if isinstance(child, str):
+                child_directory = directory_path.joinpath(child)
+                if not child_directory.exists():
+                    raise ValueError(
+                        "Referenced child directory {} is missing".format(child_directory)
+                    )
+                child_deck_json = self.read_deck(child_directory, self.get_deck_path(child_directory))
+                expanded_children.append(child_deck_json)
+            else:
+                expanded_children.append(child)
+
+        expanded["children"] = expanded_children
+
+        return expanded
+
+    @staticmethod
+    def _is_hierarchical(directory_path: Path, deck_json) -> bool:
+        if not isinstance(deck_json, dict):
+            return False
+
+        children = deck_json.get("children", [])
+        if any(isinstance(child, str) for child in children):
+            return True
+
+        notes_path = directory_path.joinpath(NOTES_FILE_NAME)
+        if notes_path.exists() and "notes" not in deck_json:
+            return True
+
+        return False
 
     @staticmethod
     def read_import_config(directory_path, deck_json):
