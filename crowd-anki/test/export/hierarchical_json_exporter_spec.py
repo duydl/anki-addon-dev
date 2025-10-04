@@ -44,7 +44,8 @@ sys.modules["aqt.qt"].qtmajor = 6
 from crowd_anki.export.hierarchical_json_exporter import HierarchicalJsonExporter
 from crowd_anki.importer.anki_importer import AnkiJsonImporter
 from crowd_anki.representation.json_serializable import JsonSerializable
-from crowd_anki.utils.constants import METADATA_FILE_NAME
+from crowd_anki.utils.constants import METADATA_FILE_NAME, NOTES_HTML_FILE_NAME
+from crowd_anki.utils.note_html import notes_from_html
 from crowd_anki.utils.filesystem.name_sanitizer import sanitize_anki_deck_name
 
 
@@ -158,10 +159,12 @@ def test_hierarchical_exporter_creates_directory_tree(exported_tree):
     deck_json_path = export_dir / "deck.json"
     notes_json_path = export_dir / "notes.json"
     metadata_json_path = export_dir / METADATA_FILE_NAME
+    notes_html_path = export_dir / NOTES_HTML_FILE_NAME
 
     assert deck_json_path.exists()
     assert notes_json_path.exists()
     assert metadata_json_path.exists()
+    assert notes_html_path.exists()
 
     root_deck_json = json.loads(deck_json_path.read_text(encoding="utf8"))
     assert "notes" not in root_deck_json
@@ -169,6 +172,7 @@ def test_hierarchical_exporter_creates_directory_tree(exported_tree):
     assert "note_models" not in root_deck_json
 
     assert json.loads(notes_json_path.read_text(encoding="utf8")) == root_notes
+    assert notes_from_html(notes_html_path.read_text(encoding="utf8")) == root_notes
 
     root_metadata_json = json.loads(metadata_json_path.read_text(encoding="utf8"))
     assert root_metadata_json == {"note_models": [{"model": "root"}]}
@@ -182,6 +186,7 @@ def test_hierarchical_exporter_creates_directory_tree(exported_tree):
     assert child_deck_json["deck_configurations"] == [{"child": "config"}]
 
     assert json.loads((child_directory / "notes.json").read_text(encoding="utf8")) == child_notes
+    assert notes_from_html((child_directory / NOTES_HTML_FILE_NAME).read_text(encoding="utf8")) == child_notes
     assert exported_tree["exporter"].last_exported_count == 2
 
 
@@ -201,6 +206,25 @@ def test_importer_expands_hierarchical_exports(exported_tree):
     assert child_json["name"] == "Child:Deck"
     assert child_json["notes"] == child_notes
     assert child_json["children"] == []
+    assert deck_json["notes_html"] == root_notes
+    assert child_json["notes_html"] == child_notes
+
+
+def test_importer_can_use_html_notes(exported_tree):
+    export_dir: Path = exported_tree["export_dir"]
+    root_notes = exported_tree["root_notes"]
+    child_notes = exported_tree["child_notes"]
+
+    importer = AnkiJsonImporter(MagicMock())
+    deck_json = importer.read_deck(export_dir, export_dir / "deck.json")
+
+    deck_json["notes"] = []
+    deck_json["children"][0]["notes"] = []
+
+    importer._apply_html_notes(deck_json)
+
+    assert deck_json["notes"] == root_notes
+    assert deck_json["children"][0]["notes"] == child_notes
 
 
 def test_importer_supports_inline_note_models(exported_tree, tmp_path: Path):

@@ -14,9 +14,11 @@ from ..utils.constants import (
     DECK_FILE_EXTENSION,
     MEDIA_SUBDIRECTORY_NAME,
     NOTES_FILE_NAME,
+    NOTES_HTML_FILE_NAME,
     METADATA_FILE_NAME,
     IMPORT_CONFIG_NAME,
 )
+from ..utils.note_html import notes_from_html
 from ..importer.import_dialog import ImportDialog, ImportConfig
 from aqt.qt import QDialog
 
@@ -42,6 +44,9 @@ class AnkiJsonImporter:
         if aqt.mw:
             aqt.mw.create_backup_now()
         try:
+            if import_config.use_html_notes:
+                self._apply_html_notes(deck_json)
+
             deck = deck_initializer.from_json(deck_json)
             deck.save_to_collection(self.collection, import_config=import_config)
 
@@ -123,6 +128,11 @@ class AnkiJsonImporter:
         else:
             expanded.setdefault("notes", [])
 
+        notes_html_path = directory_path.joinpath(NOTES_HTML_FILE_NAME)
+        if notes_html_path.exists():
+            html_text = notes_html_path.read_text(encoding='utf8')
+            expanded["notes_html"] = notes_from_html(html_text)
+
         expanded_children = []
         for child in deck_json.get("children", []):
             if isinstance(child, str):
@@ -158,6 +168,18 @@ class AnkiJsonImporter:
             return True
 
         return False
+
+    @staticmethod
+    def _apply_html_notes(deck_json):
+        if not isinstance(deck_json, dict):
+            return
+
+        html_notes = deck_json.get("notes_html")
+        if isinstance(html_notes, list):
+            deck_json["notes"] = html_notes
+
+        for child in deck_json.get("children", []):
+            AnkiJsonImporter._apply_html_notes(child)
 
     @staticmethod
     def read_import_config(directory_path, deck_json):

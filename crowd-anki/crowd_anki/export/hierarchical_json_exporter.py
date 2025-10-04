@@ -8,9 +8,11 @@ from ..representation import deck_initializer
 from ..utils.constants import (
     DECK_FILE_EXTENSION,
     NOTES_FILE_NAME,
+    NOTES_HTML_FILE_NAME,
     METADATA_FILE_NAME,
 )
 from ..utils.filesystem.name_sanitizer import sanitize_anki_deck_name
+from ..utils.note_html import notes_to_html
 
 
 class HierarchicalJsonExporter(AnkiJsonExporter):
@@ -103,6 +105,12 @@ class HierarchicalJsonExporter(AnkiJsonExporter):
                     ensure_ascii=False,
                 )
             )
+
+        notes_html_path = deck_directory.joinpath(NOTES_HTML_FILE_NAME)
+        notes_html_path.write_text(
+            notes_to_html(notes, metadata.get("note_models"), deck_dict.get("name")),
+            encoding="utf8",
+        )
 
         metadata_path = deck_directory.joinpath(METADATA_FILE_NAME)
         if metadata:

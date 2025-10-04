@@ -60,6 +60,7 @@ class ImportConfig(PersonalFieldsHolder):
     add_tag_to_cards: List[str]
 
     use_notes: bool
+    use_html_notes: bool
     use_media: bool
 
     ignore_deck_movement: bool
@@ -150,16 +151,31 @@ class ImportDialog(QDialog):
             checkbox.setText(text)
 
         set_checked_and_text(self.form.cb_notes, "Notes", len(self.deck_json['notes']))
+        if hasattr(self.form, "cb_notes_html"):
+            html_notes = self.deck_json.get("notes_html")
+            has_html_notes = isinstance(html_notes, list) and len(html_notes) > 0
+            set_checked_and_text(
+                self.form.cb_notes_html,
+                "Notes (HTML)",
+                len(html_notes) if isinstance(html_notes, list) else 0,
+                checked=False,
+            )
+            self.form.cb_notes_html.setEnabled(has_html_notes)
         set_checked_and_text(self.form.cb_media, "Media Files", len(self.deck_json['media_files']))
 
         # TODO: Deck Parts to Use, check which are actually in the deck_json
 
     def read_import_config(self):
+        use_html_notes = False
+        if hasattr(self.form, "cb_notes_html"):
+            use_html_notes = self.form.cb_notes_html.isChecked()
+
         config = ImportConfig(
             add_tag_to_cards=string_cs_to_list(
                 self.form.textedit_tags.text()) if self.form.cb_tag_cards.isChecked() else [],
 
-            use_notes=self.form.cb_notes.isChecked(),
+            use_notes=self.form.cb_notes.isChecked() or use_html_notes,
+            use_html_notes=use_html_notes,
             use_media=self.form.cb_media.isChecked(),
 
             ignore_deck_movement=self.form.cb_ignore_move_cards.isChecked()
