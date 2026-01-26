@@ -1,0 +1,16 @@
+language: python
+python:
+  - "3.7"
+
+addons:
+  sonarcloud:
+    organization: "stvad-github"
+
+install:
+  - pip install pipenv
+  - pipenv install --dev
+
+script:
+  - pipenv run mamba --enable-coverage ./
+  - coverage xml -i -o build/coverage.xml
+  - sonar-scanner

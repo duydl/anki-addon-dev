@@ -1,0 +1,215 @@
+import json
+import os
+import shutil
+from pathlib import Path
+from typing import Callable, Optional
+
+import aqt
+import aqt.utils
+import yaml
+
+from ..representation import deck_initializer
+from ..utils.constants import (
+    DECK_FILE_NAME,
+    DECK_FILE_EXTENSION,
+    MEDIA_SUBDIRECTORY_NAME,
+    NOTES_FILE_NAME,
+    NOTES_HTML_FILE_NAME,
+    METADATA_FILE_NAME,
+    IMPORT_CONFIG_NAME,
+)
+from ..utils.note_html import notes_from_html
+from ..importer.import_dialog import ImportDialog, ImportConfig
+from aqt.qt import QDialog
+
+
+class AnkiJsonImporter:
+    def __init__(self, collection, deck_file_name: str = DECK_FILE_NAME):
+        self.collection = collection
+        self.deck_file_name = deck_file_name
+
+    def load_deck(self, directory_path) -> bool:
+        """
+        Load deck serialized to directory
+        Assumes that deck json file is located in the directory
+        and named 'deck.json' or '[foldername].json
+        :param directory_path: Path
+        """
+        deck_json = self.read_deck(directory_path, self.get_deck_path(directory_path))
+
+        import_config = self.read_import_config(directory_path, deck_json)
+        if import_config is None:
+            return False
+
+        if aqt.mw:
+            aqt.mw.create_backup_now()
+        try:
+            if import_config.use_html_notes:
+                self._apply_html_notes(deck_json)
+
+            deck = deck_initializer.from_json(deck_json)
+            deck.save_to_collection(self.collection, import_config=import_config)
+
+            if import_config.use_media:
+                self.import_media(directory_path)
+        finally:
+            if aqt.mw:
+                aqt.mw.deckBrowser.show()
+        return True
+
+    def import_media(self, directory_path):
+        media_directory = directory_path.joinpath(MEDIA_SUBDIRECTORY_NAME)
+        if media_directory.exists():
+            unicode_media_directory = str(media_directory)
+            src_files = os.listdir(unicode_media_directory)
+            for filename in src_files:
+                full_filename = os.path.join(unicode_media_directory, filename)
+                if os.path.isfile(full_filename):
+                    shutil.copy(full_filename, self.collection.media.dir())
+            # Set media dir mtime to force sync of media.  Otherwise,
+            # if no media files are added or removed, Anki will not
+            # sync media changes.  See the Anki source:
+            # https://github.com/ankitects/anki/blob/b7cb0c0d0081202586fd2d88541db962819736b3/rslib/src/sync/media/database/client/changetracker.rs#L59
+            os.utime(self.collection.media.dir())
+        else:
+            print("Warning: no media directory exists.")
+
+    def get_deck_path(self, directory_path):
+        """
+        Provides compatibility layer between deck file naming conventions.
+        Assumes that deck json file is located in the directory and named 'deck.json'
+        """
+
+        def path_for_name(name):
+            return directory_path.joinpath(name).with_suffix(DECK_FILE_EXTENSION)
+
+        convention_path = path_for_name(self.deck_file_name)   # [folder]/deck.json
+        inferred_path = path_for_name(directory_path.name)     # [folder]/[folder].json
+        return convention_path if convention_path.exists() else inferred_path
+
+    def read_deck(self, directory_path: Path, file_path: Path):
+        if not file_path.exists():
+            raise ValueError("There is no {} file inside of the selected directory".format(file_path))
+
+        with file_path.open(encoding='utf8') as deck_file:
+            deck_json = json.load(deck_file)
+
+        return self._maybe_expand_hierarchical(directory_path, deck_json)
+
+    def _maybe_expand_hierarchical(self, directory_path: Path, deck_json):
+        if not isinstance(deck_json, dict):
+            return deck_json
+
+        if not self._is_hierarchical(directory_path, deck_json):
+            return deck_json
+
+        expanded = dict(deck_json)
+
+        metadata_path = directory_path.joinpath(METADATA_FILE_NAME)
+        if metadata_path.exists():
+            with metadata_path.open(encoding='utf8') as metadata_file:
+                metadata_json = json.load(metadata_file)
+            if isinstance(metadata_json, dict):
+                for key, value in metadata_json.items():
+                    existing = expanded.get(key)
+                    if isinstance(existing, list) and isinstance(value, list):
+                        combined = list(existing)
+                        for item in value:
+                            if item not in combined:
+                                combined.append(item)
+                        expanded[key] = combined
+                    elif key not in expanded:
+                        expanded[key] = value
+
+        notes_path = directory_path.joinpath(NOTES_FILE_NAME)
+        if notes_path.exists():
+            with notes_path.open(encoding='utf8') as notes_file:
+                expanded["notes"] = json.load(notes_file)
+        else:
+            expanded.setdefault("notes", [])
+
+        notes_html_path = directory_path.joinpath(NOTES_HTML_FILE_NAME)
+        if notes_html_path.exists():
+            html_text = notes_html_path.read_text(encoding='utf8')
+            expanded["notes_html"] = notes_from_html(html_text)
+
+        expanded_children = []
+        for child in deck_json.get("children", []):
+            if isinstance(child, str):
+                child_directory = directory_path.joinpath(child)
+                if not child_directory.exists():
+                    raise ValueError(
+                        "Referenced child directory {} is missing".format(child_directory)
+                    )
+                child_deck_json = self.read_deck(child_directory, self.get_deck_path(child_directory))
+                expanded_children.append(child_deck_json)
+            else:
+                expanded_children.append(child)
+
+        expanded["children"] = expanded_children
+
+        return expanded
+
+    @staticmethod
+    def _is_hierarchical(directory_path: Path, deck_json) -> bool:
+        if not isinstance(deck_json, dict):
+            return False
+
+        children = deck_json.get("children", [])
+        if any(isinstance(child, str) for child in children):
+            return True
+
+        notes_path = directory_path.joinpath(NOTES_FILE_NAME)
+        if notes_path.exists() and "notes" not in deck_json:
+            return True
+
+        metadata_path = directory_path.joinpath(METADATA_FILE_NAME)
+        if metadata_path.exists():
+            return True
+
+        return False
+
+    @staticmethod
+    def _apply_html_notes(deck_json):
+        if not isinstance(deck_json, dict):
+            return
+
+        html_notes = deck_json.get("notes_html")
+        if isinstance(html_notes, list):
+            deck_json["notes"] = html_notes
+
+        for child in deck_json.get("children", []):
+            AnkiJsonImporter._apply_html_notes(child)
+
+    @staticmethod
+    def read_import_config(directory_path, deck_json):
+        file_path = directory_path.joinpath(IMPORT_CONFIG_NAME)
+
+        if not file_path.exists():
+            import_dict = {}
+        else:
+            with file_path.open(encoding='utf8') as meta_file:
+                import_dict = yaml.full_load(meta_file)
+
+        import_dialog = ImportDialog(deck_json, import_dict)
+        if import_dialog.exec() == QDialog.DialogCode.Rejected:
+            return None
+
+        return import_dialog.final_import_config
+
+    @staticmethod
+    def import_deck_from_path(collection, directory_path):
+        importer = AnkiJsonImporter(collection)
+        try:
+            if importer.load_deck(directory_path):
+                aqt.utils.showInfo("Import of {} deck was successful".format(directory_path.name))
+        except ValueError as error:
+            aqt.utils.showWarning("Error: {}. While trying to import deck from directory {}".format(
+                error.args[0], directory_path))
+            raise
+
+    @staticmethod
+    def import_deck(collection, directory_provider: Callable[[str], Optional[str]]):
+        directory_path = str(directory_provider("Select Deck Directory"))
+        if directory_path:
+            AnkiJsonImporter.import_deck_from_path(collection, Path(directory_path))
