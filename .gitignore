@@ -1,8 +1,37 @@
-__pycache__
-.env
-.venv
-_archive
-_release
+# Byte-compiled / interpreter cache
+__pycache__/
+*.py[cod]
+*.pyi
+*.pyo
+*.pyd
 
-# Add-on metadata apply when linking locally
+# Virtual environments
+.venv/
+venv/
+.env
+
+# Packaging / build
+_release/
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Logs
+*.log
+
+# Editor / tooling
+.vscode/
+.idea/
+
+# Local archives
+_archive/
+
+# Add-on metadata applied when linking locally
 meta.json
