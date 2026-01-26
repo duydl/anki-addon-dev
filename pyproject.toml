@@ -1,0 +1,12 @@
+[project]
+name = "anki-addon-dev"
+version = "0.1.0"
+description = "Local development environment for working on multiple Anki add-ons."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "anki==25.9.2",
+    "aqt[qt]==25.9.2",
+]
+
+[tool.uv]
