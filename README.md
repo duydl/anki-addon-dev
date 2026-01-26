@@ -25,15 +25,27 @@ source .venv/bin/activate  # on Windows: .venv\\Scripts\\activate
 uv run python release.py
 ```
 
+## Running Anki from this repo
+
+Use the helper script to start Anki pointing at a custom base (profile/addons) directory. By default it uses `./_data` inside this repo, which already contains empty `addons21/`, `collection.media`, and a `Test` profile (structure kept with `.gitignore` files):
+
+```bash
+./start-anki.sh
+
+# use the normal (global) Anki profile/base; still via uv
+./start-anki.sh --global
+```
+The script passes Anki's `-b` flag to set the base directory (where `addons21/` resides) and `-p` if `ANKI_PROFILE` is provided. With `--global` it omits those flags so Anki uses the default global profile and base.
+
 ## Packaging and Releasing Add-ons
 
-To move an add-on to the Anki add-on directory and create a zip file for uploading to AnkiWeb, you can use the provided `release.py` script:
+To move an add-on to the Anki add-on directory and create a zip file for uploading to AnkiWeb, you can use the provided `release.py` script. It has a `BASE` constant near the top that defaults to this repo's `_data` directory, so releases land in `_data/addons21/`:
 
 ```bash
 uv run python release.py
 ```
 
-The add-on will be moved to `addons21` inside the `BASE/` directory that is configurable from `config.py`. Start Anki from the `BASE/` directory with `-b <BASE>` argument following `anki` binary.
+The add-on will be moved to `addons21` inside the `BASE/` directory (see `BASE` in `release.py`). Start Anki from the `BASE/` directory with `-b <BASE>` argument following `anki` binary.
 
 ## Link
 
