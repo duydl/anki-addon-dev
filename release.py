@@ -1,15 +1,27 @@
+import fnmatch
 import os
 import shutil
+import subprocess
 import zipfile
 from config import *
 
-source_dir = os.getcwd()
+source_dir = os.path.abspath(os.path.dirname(__file__))
 
 destination_dir = os.path.join(BASE, "addons21")
 os.makedirs(destination_dir, exist_ok=True)
 
 release_dir = os.path.join(source_dir, "_release")
 os.makedirs(release_dir, exist_ok=True)
+
+def should_ignore(path):
+    rel = os.path.normpath(path)
+    parts = rel.split(os.sep)
+    for pattern in IGNORE_PATTERNS:
+        if fnmatch.fnmatch(rel, pattern):
+            return True
+        if any(fnmatch.fnmatch(part, pattern) for part in parts):
+            return True
+    return False
 
 def release_folder(item_path, item_name):
     confirm = input(f"Are you sure you want to release {item_name} (y/n)? (Default: n) ")
@@ -30,12 +42,23 @@ def release_folder(item_path, item_name):
     with zipfile.ZipFile(zip_file_path, "w", zipfile.ZIP_DEFLATED) as zipf:
         for root, _, files in os.walk(dest_path):
             for file in files:
-                if file not in ["meta.json", "README.md"]:
-                    file_path = os.path.join(root, file)
-                    arcname = os.path.relpath(file_path, start=dest_path)
-                    zipf.write(file_path, arcname)
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, start=dest_path)
+                if should_ignore(arcname):
+                    continue
+                zipf.write(file_path, arcname)
 
     print(f"Zipped contents of {item_name} into {zip_file_path}")
+
+# Run pre-release scripts once up front.
+for script in SCRIPTS:
+    print(f"Running pre-release script: {script}")
+    script_path = script
+    if not os.path.isabs(script_path):
+        script_path = os.path.join(source_dir, script_path)
+    script_dir = os.path.dirname(os.path.abspath(script_path))
+    # Run each script from its own directory so relative paths inside the script work.
+    subprocess.run(script_path, shell=True, check=True, cwd=script_dir)
 
 # 1) auto-discover (optional)
 if AUTO_DISCOVER:

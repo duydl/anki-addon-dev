@@ -9,4 +9,24 @@ dependencies = [
     "aqt[qt]==25.9.2",
 ]
 
+[dependency-groups]
+crowd-anki = [
+    "PyFunctional==1.5.0",
+    "dulwich==0.22.8",
+    "pygtrie==2.5.0",
+    "cached-property==2.0.1",
+    "PyYAML==6.0.2",
+]
+crowd-anki-dev = [
+    "anki==25.9.2",
+    "aqt[qt]==25.9.2",
+    "expects==0.9.0",
+    "mamba==0.11.3",
+    "hypothesis==6.131.18",
+    "PyQt5==5.15.11",
+    "PyQt5-Qt5==5.15.2",
+    "PyQtWebEngine==5.15.7",
+    "PyQtWebEngine-Qt5==5.15.2",
+]
+
 [tool.uv]
