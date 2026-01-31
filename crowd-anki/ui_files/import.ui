@@ -102,6 +102,13 @@
                    </widget>
                   </item>
                   <item>
+                   <widget class="QCheckBox" name="cb_notes_html">
+                    <property name="text">
+                     <string>Notes (HTML)</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
                    <widget class="QCheckBox" name="cb_media">
                     <property name="text">
                      <string>Media</string>
