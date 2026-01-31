@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CrowdAnki Deck Viewer</title>
+    <link rel="stylesheet" href="viewer.css">
+</head>
+
+<body>
+    <div id="app">
+        <aside id="sidebar">
+            <h2>Decks</h2>
+            <div id="deck-list"></div>
+        </aside>
+        <main id="content">
+            <div id="header">
+                <h1 id="deck-title">Select a deck</h1>
+                <div id="controls" style="display:none;">
+                    <label for="render-mode">View Mode: </label>
+                    <select id="render-mode">
+                        <option value="raw" selected>Raw Fields</option>
+                        <option value="model">Preview Card</option>
+                    </select>
+                </div>
+            </div>
+            <div id="cards-container"></div>
+        </main>
+    </div>
+
+    <!-- Data Manifest will be injected here or loaded from a file -->
+    <script src="manifest.js"></script>
+    <script src="viewer.js"></script>
+</body>
+
+</html>

@@ -51,6 +51,8 @@ class HierarchicalJsonExporter(AnkiJsonExporter):
         if copy_media:
             self._copy_media(deck, deck_directory)
 
+        self._export_viewer(deck_directory, deck, self.deck_file_name)
+
         return deck_directory
 
     def _export_deck_recursive(self, deck, deck_directory: Path) -> None:
@@ -125,4 +127,47 @@ class HierarchicalJsonExporter(AnkiJsonExporter):
                 )
         elif metadata_path.exists():
             metadata_path.unlink()
+
+    def _export_viewer(self, deck_directory: Path, deck, deck_file_name) -> None:
+        viewer_path = Path(__file__).parent.joinpath("viewer")
+        for file_name in ["index.html", "viewer.css", "viewer.js"]:
+            src = viewer_path.joinpath(file_name)
+            dst = deck_directory.joinpath(file_name)
+            if src.exists(): # Should exist as we created them
+                dst.write_bytes(src.read_bytes())
+
+        # Generate manifest
+        manifest = self._generate_manifest(deck, deck_file_name)
+        manifest_js = f"window.deckManifest = {json.dumps(manifest, indent=4)};"
+        deck_directory.joinpath("manifest.js").write_text(manifest_js, encoding="utf-8")
+
+    def _generate_manifest(self, deck, deck_file_name) -> dict:
+        # Recursive function to build manifest
+        # deck structure is already akin to what we need, but we need file paths relative to root
+
+        def build_node(node, current_path=""):
+             # node is a Deck object
+             # current_path is the relative path from root to this deck's folder
+
+             node_data = {
+                 "name": node.anki_dict["name"].split("::")[-1],
+                 "deckPath": f"{current_path}{deck_file_name}.json",
+                 "notesPath": f"{current_path}{NOTES_FILE_NAME}",
+                 "children": []
+             }
+             
+             # Check for models
+             models_path = f"{current_path}{METADATA_FILE_NAME}"
+             node_data["modelsPath"] = models_path
+
+             for child in node.children:
+                 child_dirname = self.deck_name_sanitizer(child.anki_dict["name"].split("::")[-1])
+                 child_rel_path = f"{current_path}{child_dirname}/"
+                 
+                 child_node = build_node(child, child_rel_path)
+                 node_data["children"].append(child_node)
+
+             return node_data
+
+        return build_node(deck)
 
