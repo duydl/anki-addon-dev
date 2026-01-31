@@ -24,9 +24,6 @@ def should_ignore(path):
     return False
 
 def release_folder(item_path, item_name):
-    confirm = input(f"Are you sure you want to release {item_name} (y/n)? (Default: n) ")
-    if confirm != "y":
-        return
 
     new_item_name = f"_local-{item_name}"
     dest_path = os.path.join(destination_dir, new_item_name)
@@ -50,25 +47,13 @@ def release_folder(item_path, item_name):
 
     print(f"Zipped contents of {item_name} into {zip_file_path}")
 
-# Run pre-release scripts once up front.
-for script in SCRIPTS:
-    print(f"Running pre-release script: {script}")
-    script_path = script
-    if not os.path.isabs(script_path):
-        script_path = os.path.join(source_dir, script_path)
-    script_dir = os.path.dirname(os.path.abspath(script_path))
-    # Run each script from its own directory so relative paths inside the script work.
-    subprocess.run(script_path, shell=True, check=True, cwd=script_dir)
+for addon in ADDONS:
+    # Run pre-release scripts for this addon
+    for command in addon.get("scripts", []):
+        print(f"Running script for {addon['path']}: {command}")
+        subprocess.run(command, shell=True, check=True, cwd=source_dir)
 
-# 1) auto-discover (optional)
-if AUTO_DISCOVER:
-    for item_name in os.listdir(source_dir):
-        item_path = os.path.join(source_dir, item_name)
-        if os.path.isdir(item_path) and "__init__.py" in os.listdir(item_path):
-            release_folder(item_path, item_name)
-
-# 2) custom relative paths (always)
-for rel in RELEASE_PATHS:
+    rel = addon["path"]
     item_path = os.path.join(source_dir, rel)
     item_name = os.path.basename(os.path.normpath(rel))
     if os.path.isdir(item_path):
