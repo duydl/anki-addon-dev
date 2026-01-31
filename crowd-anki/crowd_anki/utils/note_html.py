@@ -8,41 +8,8 @@ from xml.etree import ElementTree as ET
 from .constants import UUID_FIELD_NAME
 
 
+
 ATTRIBUTE_KEYS = ("guid", "note_model_uuid")
-FIELD_FALLBACK_TEMPLATE = "Field {index}"
-
-
-def _field_names_by_model(note_models: Optional[Iterable[Dict[str, Any]]]) -> Dict[str, List[str]]:
-    if not note_models:
-        return {}
-
-    mapping: Dict[str, List[str]] = {}
-    for model in note_models:
-        if not isinstance(model, dict):
-            continue
-
-        uuid = (
-            model.get(UUID_FIELD_NAME)
-            or model.get("crowdanki_uuid")
-            or model.get("id")
-        )
-        if not uuid:
-            continue
-
-        field_names: List[str] = []
-        fields = model.get("flds", [])
-        if isinstance(fields, list):
-            for index, field in enumerate(fields, start=1):
-                if isinstance(field, dict):
-                    name = field.get("name")
-                else:
-                    name = None
-                field_names.append(name or FIELD_FALLBACK_TEMPLATE.format(index=index))
-
-        mapping[str(uuid)] = field_names
-
-    return mapping
-
 
 
 def notes_to_html(
@@ -65,8 +32,6 @@ def notes_to_html(
     if deck_name:
         cards_container.set("deck", str(deck_name))
 
-    field_names_map = _field_names_by_model(note_models)
-
     for note in notes:
         if not isinstance(note, dict):
             continue
@@ -82,17 +47,8 @@ def notes_to_html(
         if not isinstance(fields, list):
             fields = []
 
-        model_uuid = card_element.get("note_model_uuid")
-        model_field_names = field_names_map.get(model_uuid or "", [])
-
         for index, field_value in enumerate(fields, start=1):
             field_element = ET.SubElement(card_element, "div", attrib={"class": "field"})
-            field_name = (
-                model_field_names[index - 1]
-                if index - 1 < len(model_field_names)
-                else FIELD_FALLBACK_TEMPLATE.format(index=index)
-            )
-            field_element.set("name", field_name)
             field_element.text = "" if field_value is None else str(field_value)
 
         tags = note.get("tags")
